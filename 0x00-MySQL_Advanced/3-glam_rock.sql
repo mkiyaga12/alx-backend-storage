@@ -1,6 +1,13 @@
--- a SQL script that lists all bands with Glam rock as their main style
--- ranked by their longevity
-SELECT band_name, IFNULL(split, 2020) - formed AS lifespan
+/**
+ * Retrieves the band name and lifespan of glam rock bands from the
+ * metal_bands table.
+ *
+ * @return A result set containing the band name and lifespan of glam rock
+ * bands, ordered by lifespan in descending order.
+ */
+-- Retrieve data
+SELECT band_name,
+    (IFNULL(split, 2024) - formed) AS lifespan -- calculate the lifespan
 FROM metal_bands
-WHERE FIND_IN_SET("Glam rock", style)
+WHERE style LIKE '%Glam rock%'
 ORDER BY lifespan DESC;
