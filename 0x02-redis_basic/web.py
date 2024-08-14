@@ -1,36 +1,32 @@
 #!/usr/bin/env python3
-"""
-web cache and tracker
-"""
-import requests
-import redis
+"""module to implement a function prototype"""
+from typing import Callable
 from functools import wraps
+import redis
+import requests
+redis_client = redis.Redis()
 
-store = redis.Redis()
 
-
-def count_url_access(method):
-    """ Decorator counting how many times
-    a URL is accessed """
+def counter(method: Callable) -> Callable:
+    """counts the number of times the url is accessed"""
     @wraps(method)
-    def wrapper(url):
-        cached_key = "cached:" + url
-        cached_data = store.get(cached_key)
-        if cached_data:
-            return cached_data.decode("utf-8")
-
-        count_key = "count:" + url
-        html = method(url)
-
-        store.incr(count_key)
-        store.set(cached_key, html)
-        store.expire(cached_key, 10)
-        return html
+    def wrapper(*args, **kwargs):
+        url = args[0]
+        redis_client.incr(f"count:{url}")
+        cached = redis_client.get(f'{url}')
+        if cached:
+            return cached.decode('utf-8')
+        redis_client.setex(f'{url}', 10, method(url))
+        return method(*args, **kwargs)
     return wrapper
 
 
-@count_url_access
+@counter
 def get_page(url: str) -> str:
-    """ Returns HTML content of a url """
-    res = requests.get(url)
-    return res.text
+    """get a page and cache value"""
+    response = requests.get(url)
+    return response.text
+
+
+if __name__ == "__main__":
+    get_page('http://slowwly.robertomurray.co.uk')
